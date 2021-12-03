@@ -1,15 +1,17 @@
 const fs = require('fs');
 
-const input = fs.readFileSync(__dirname + '/inputs/03.input', 'utf8').trim().split('\n');
+const input = fs.readFileSync(__dirname + '/inputs/03.input', 'utf8').trim().split('\n')
+  .map((word) => Number.parseInt(word, 2));
 
-const bits = new Array(input[0].length).fill(0);
+const WORD_LENGTH = 12;
+const COUNT_THRESHOLD = input.length / 2;
 
-for (const number of input) {
-  for (let bit = 0; bit < number.length; bit++) {
-    if (number[bit] === '1') {
-      bits[bit]++;
-    } else {
-      bits[bit]--;
+const bitCounts = new Array(WORD_LENGTH).fill(0);
+
+for (const word of input) {
+  for (let position = 0; position < WORD_LENGTH; position++) {
+    if (word >> position & 1) {
+      bitCounts[position]++;
     }
   }
 }
@@ -17,35 +19,38 @@ for (const number of input) {
 let gamma = 0;
 let epsilon = 0;
 
-for (let bit = 0; bit < bits.length; bit++) {
-  if (bits[bits.length - 1 - bit] > 0) {
-    gamma += 1 << bit;
+for (let position = 0; position < WORD_LENGTH; position++) {
+  if (bitCounts[position] > COUNT_THRESHOLD) {
+    gamma += 1 << position;
   } else {
-    epsilon += 1 << bit;
+    epsilon += 1 << position;
   }
 }
 
 console.log({gamma, epsilon, product: gamma * epsilon});
 
-function winnowNumbers(numbers, comparator) {
-  let bit = 0;
+function winnowNumbers(words, comparator) {
+  let position = WORD_LENGTH - 1;
 
-  while(numbers.length > 1){
+  while(words.length > 1){
+    const ones = [];
+    const zeroes = [];
     let count = 0;
-    for (const number of numbers) {
-     if (number[bit] === '1') {
+
+    for (const word of words) {
+     if (word >> position & 1) {
         count++;
+        ones.push(word);
       } else {
-        count--;
+        zeroes.push(word);
       }
     }
-    numbers = numbers.filter((number) => {
-      return comparator(count, 0) ? number[bit] === '1' : number[bit] === '0';
-    }); 
-    bit++; 
+    
+    words = comparator(count, COUNT_THRESHOLD) ? ones : zeroes;
+    position--; 
   }
 
-  return Number.parseInt(numbers[0], 2);
+  return words[0];
 }
 
 let oxygen = winnowNumbers(input.slice(0), (a, b) => a >= b);
