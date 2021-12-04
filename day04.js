@@ -2,79 +2,50 @@ const fs = require('fs');
 
 const input = fs.readFileSync(__dirname + '/inputs/04.input', 'utf8').trim().split('\n\n');
 
-const numbers = (input.shift()).split(',');
+const numbers = (input.shift()).split(',').map(Number);
 
 const boards = input.map((boardString) => 
   boardString.trim().split('\n').map((row) => 
-    row.trim().split(/\ +/)));
+    row.trim().split(/\ +/).map(Number)));
 
-const played = Array.from(boards, (board) => 
-  board.map((row) => 
-    row.map((number) => 0)));
+const winners = new Set();
+const called = new Set();
 
-const numberToCoordinateMaps = boards.map((board) => {
-  const numberToCoordinates = {};
+for (const number of numbers) {
+  called.add(number);
 
-  for (let row = 0; row < board.length; row++) {
-    for (let col = 0; col < board[row].length; col++) {
-      numberToCoordinates[board[row][col]] = {row, col};
+  for (let i = 0; i < boards.length; i++) {
+    if (winners.has(i) || !isWinningBoard(boards[i], called)) continue;
+
+    if (winners.size === 0) console.log(`The first winning score is: ${calculateScore(boards[i], called, number)}`);
+
+    winners.add(i);
+
+    if (winners.size === boards.length) {
+      console.log(`The final winning score is: ${calculateScore(boards[i], called, number)}`);
+      return;
     }
   }
+}
 
-  return numberToCoordinates;
-});
-
-function isWinningBoard(board) {
-  for (let row = 0; row < board.length; row++) {
-    if (!board[row].includes(0)) return true;
-  }
+function isWinningBoard(board, called) {
+  if (board.some((row) => row.every((val) => called.has(val)))) return true;
 
   for (let col = 0; col < board[0].length; col++) {
-    let isWin = true
-
-    for (let row = 0; row < board.length; row++) {
-      isWin = board[row][col] && isWin;
-    }
-
-    if (isWin) return true;
+    if (board.every((row) => called.has(row[col]))) return true;
   }
 
   return false;
 }
 
-function calculateScore(playedSquares, squareValues, numberPlayed) {
+function calculateScore(board, called, lastCalled) {
   let sum = 0;
-  for (let row = 0; row < playedSquares.length; row++) {
-    for (let col = 0; col < playedSquares.length; col++) {
-      if (!playedSquares[row][col]) sum += Number(squareValues[row][col]);
+
+  for (const row of board) {
+    for (const number of row) {
+      if (!called.has(number)) sum += number;
     }
   }
 
-  return sum * numberPlayed;
-}
-
-const inPlay = new Set(boards.keys());
-let firstWin = true;
-
-for (const number of numbers) {
-  for (let i = 0; i < boards.length; i++) {
-    if (!numberToCoordinateMaps[i].hasOwnProperty(number)) continue;
-
-    const {row, col} = numberToCoordinateMaps[i][number];
-    played[i][row][col] = 1;
-
-    if (!inPlay.has(i) || !isWinningBoard(played[i])) continue;
-
-    if (firstWin) {
-      console.log(`The first winning score is: ${calculateScore(played[i], boards[i], number)}`);
-      firstWin = false;
-    }
-
-    if (inPlay.size === 1) {
-      console.log(`The final winning score is: ${calculateScore(played[i], boards[i], number)}`);
-      return;
-    }
-
-    inPlay.delete(i);
-  }
+  return sum * lastCalled;
 }
