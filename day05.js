@@ -12,45 +12,44 @@ for (const line of input) {
 
 console.log(`There are ${countOverlaps(thermalVentCounts)} instances of vents overlapping.`);  
 
-function addPoints(line, countMap) {
-  const [start, end] = pickStartAndEnd(line);
-  const next = pickIterator(start, end);
-  const pos = start.slice(0);
+function addPoints([start, end], countMap) {
+  const next = buildPolyadicIterator(start, end);
+  const point = start.slice(0);
   
   while(true) {
-    const [x, y] = pos;
+    const [x, y] = point;
     countMap[x] ??= {};
     countMap[x][y] ??= 0;
     countMap[x][y]++;
 
     if (x === end[0] && y === end[1]) break;
-    next(pos);
+    next(point);
   }
 }
 
-function pickStartAndEnd([first, second]) {
-  // If the line is along the y-axis, order by y value.
-  if (first[0] === second[0]) return first[1] < second[1] ? [first, second] : [second, first];
-  // Otherwise, order by x value.
-  return first[0] < second[0] ? [first, second] : [second, first];
+function buildPolyadicIterator(start, end) {
+  const dimensions = start.length;
+  const iterators = [];
+
+  for (let i = 0; i < dimensions; i++) {
+    iterators.push(buildIterator(i, start, end));
+  }
+
+  return (point) => point.forEach((_, dimension, point) => iterators[dimension](point));  
 }
 
-function pickIterator(start, end) {
-  // If the line is along the y-axis, increment position by increasing the y value.
-  if (start[0] === end[0]) return (pos) => pos[1]++;
-  // If the line is along the x-axis, increment position by increasing the x value.
-  if (start[1] === end[1]) return (pos) => pos[0]++;
-  // Otherwise, increment the x value, and either increment or decrement the y value
-  // depending on whether the line slopes upward or downward.
-  return start[1] < end[1] ? (pos) => pos[0]++ && pos[1]++ : (pos) => pos[0]++ && pos[1]--;
+function buildIterator(dimension, start, end) {
+  if (start[dimension] < end[dimension]) return (point) => point[dimension]++;
+  if (start[dimension] > end[dimension]) return (point) => point[dimension]--;
+  return () => {};
 }
 
-function countOverlaps(countMap) {
+function countOverlaps(countMap, threshold = 1) {
   let overlaps = 0;
 
   for (const x in countMap) {
     for (const y in countMap[x]) {
-      if (countMap[x][y] > 1) overlaps++;
+      if (countMap[x][y] > threshold) overlaps++;
     }
   }
 
