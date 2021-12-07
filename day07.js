@@ -2,31 +2,23 @@ const fs = require('fs');
 
 const input = fs.readFileSync(__dirname + '/inputs/07.input', 'utf8').trim().split(',').map(Number);
 
-const last = Math.max(...input);
-let minFuel = Infinity;
+const distance = (a, b) => Math.abs(a - b);
+const sumOfArithmeticProgression = (a, b) => Math.abs(a - b) * (Math.abs(a - b) + 1) / 2;
 
+console.log(`Part one: ${minFuel(input, distance)}`);
+console.log(`Part two: ${minFuel(input, sumOfArithmeticProgression)}`);
 
-for (let i = 0; i < last; i++) {
-  const fuel = input.reduce((a, v) => a + Math.abs(v - i), 0);
-  minFuel = Math.min(fuel, minFuel);
+function minFuel(input, measure) {
+  const last = Math.max(...input);
+  const memo = {};
+  const memoizedCost = (i) => memo[i] || (memo[i] = input.reduce((a, v) => a + measure(v, i), 0));
+  const search = (from, to, cost = memoizedCost)  => {
+    const mid = Math.floor((from + to) / 2);
+    if (cost(mid) > cost(mid + 1)) return search(mid, to);
+    if (cost(mid) > cost(mid - 1)) return search(from, mid);
+    return cost(mid);
+  };
+
+  return search(0, last); 
 }
 
-console.log(`Part one: ${minFuel}`);
-
-minFuel = Infinity;
-
-
-for (let i = 0; i < last; i++) {
-  const fuel = input.reduce((a, v) => {
-    const steps = Math.abs(v - i);
-    let cost = 0;
-    for (let i = 1; i <= steps; i++) {
-      cost += i;
-    }
-    return a + cost;
-  }, 0);
-  minFuel = Math.min(fuel, minFuel);
-}
-
-
-console.log(`Part two: ${minFuel}`);
